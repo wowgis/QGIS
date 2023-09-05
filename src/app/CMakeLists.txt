@@ -679,3 +679,9 @@ install(TARGETS ${QGIS_APP_NAME}
 if (APPLE)
   install(CODE "execute_process(COMMAND /bin/echo -n \"APPLQGIS\" OUTPUT_FILE \"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/../PkgInfo\")")
 endif()
+
+file(GLOB QGIS_APP_HDRS "${CMAKE_CURRENT_SOURCE_DIR}/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/*/*.h" ${CMAKE_BINARY_DIR}/src/app/qgis_app.h)
+install(FILES ${QGIS_APP_HDRS} DESTINATION ${QGIS_INCLUDE_DIR}/../qgis_app)
+
+file(GLOB QGIS_UIS_HDRS "${CMAKE_BINARY_DIR}/src/ui/*.h")
+install(FILES ${QGIS_UIS_HDRS} DESTINATION ${QGIS_INCLUDE_DIR}/../qgis_ui)
