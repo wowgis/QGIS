@@ -174,12 +174,12 @@ class QgsScreenHelper;
 #include "qgsattributetablefiltermodel.h"
 #include "qgsmasterlayoutinterface.h"
 #include "qgsmaptoolselect.h"
-#include "ogr/qgsvectorlayersaveasdialog.h"
+#include "qgsvectorlayersaveasdialog.h"
 #include "qgis.h"
 #include "ui_qgisapp.h"
 #include "qgis_app.h"
-#include "devtools/qgsappdevtoolutils.h"
-#include "options/qgsoptionsutils.h"
+#include "qgsappdevtoolutils.h"
+#include "qgsoptionsutils.h"
 
 #include <QGestureEvent>
 #include <QTapAndHoldGesture>
@@ -2117,7 +2117,7 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
      */
     void activeLayerChanged( QgsMapLayer *layer );
 
-  private:
+  protected:
 
     void createPreviewImage( const QString &path, const QIcon &overlayIcon = QIcon() );
     void startProfile( const QString &name );
