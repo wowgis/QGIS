@@ -19,7 +19,7 @@
 #include <QList>
 #include <QHash>
 #include <QPointer>
-
+#include "qgis_app.h"
 
 class QgsMapTool;
 class QgsMapToolCapture;
@@ -27,7 +27,7 @@ class QgsMapToolCapture;
 class QgsMapCanvas;
 class QgsAdvancedDigitizingDockWidget;
 
-class QgsAppMapTools
+class APP_EXPORT QgsAppMapTools
 {
   public:
     enum Tool
