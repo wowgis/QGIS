@@ -86,6 +86,9 @@ class GUI_EXPORT QgsLayerTreeMapCanvasBridge : public QObject
      */
     void setAutoSetupOnFirstLayer( bool enabled ) { mAutoSetupOnFirstLayer = enabled; }
     bool autoSetupOnFirstLayer() const { return mAutoSetupOnFirstLayer; }
+    void setFirstCrs(const QgsCoordinateReferenceSystem& crs) {
+        mFirstCRS = crs;
+    }
 
     //! force update of canvas layers from the layer tree. Normally this should not be needed to be called.
     Q_INVOKABLE void setCanvasLayers();

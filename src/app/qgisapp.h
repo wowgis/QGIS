@@ -198,7 +198,7 @@ class QgsGeoreferencerMainWindow;
  * \class QgisApp
  * \brief Main window for the QGIS application
  */
-class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
+class APP_EXPORT QgisApp : public QMainWindow, public Ui::MainWindow
 {
     Q_OBJECT
   public:
@@ -1357,7 +1357,7 @@ class APP_EXPORT QgisApp : public QMainWindow, private Ui::MainWindow
     virtual void keyReleaseEvent( QKeyEvent *event );
 #endif
 
-  private slots:
+  public slots:
     void newProfile();
 
     void onTaskCompleteShowNotify( long taskId, int status );
