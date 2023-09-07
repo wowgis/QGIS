@@ -4744,8 +4744,8 @@ void QgisApp::initLayerTreeView()
   toolbar->addAction( mActionStyleDock );
   toolbar->addAction( actionAddGroup );
   toolbar->addWidget( btnVisibilityPresets );
-  toolbar->addWidget( mFilterLegendToolButton );
-  toolbar->addWidget( mLegendExpressionFilterButton );
+  mLayerTreeFilterLegendToolButtonAction = toolbar->addWidget( mFilterLegendToolButton );
+  mLayerTreeLegendExpressionFilterButtonAction = toolbar->addWidget( mLegendExpressionFilterButton );
   toolbar->addAction( actionExpandAll );
   toolbar->addAction( actionCollapseAll );
   toolbar->addAction( mActionRemoveLayer );

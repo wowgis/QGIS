@@ -2669,6 +2669,9 @@ class APP_EXPORT QgisApp : public QMainWindow, public Ui::MainWindow
     QMap< QString, QToolButton * > mAnnotationItemGroupToolButtons;
     QAction *mAnnotationsItemInsertBefore = nullptr; // Used to insert annotation items at the appropriate location in the annotations toolbar
 
+    QAction* mLayerTreeFilterLegendToolButtonAction = nullptr;
+    QAction* mLayerTreeLegendExpressionFilterButtonAction = nullptr;
+
 #ifdef HAVE_3D
     QSet<Qgs3DMapCanvasWidget *> mOpen3DMapViews;
 #endif
