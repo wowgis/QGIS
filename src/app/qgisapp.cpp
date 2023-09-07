@@ -560,27 +560,27 @@ static void setTitleBarText_( QWidget &qgisApp )
   {
     caption = QgsProject::instance()->title();
   }
-  if ( !caption.isEmpty() )
-  {
-    caption += QStringLiteral( " %1 " ).arg( QChar( 0x2014 ) );
-  }
+//   if ( !caption.isEmpty() )
+//   {
+//     caption += QStringLiteral( " %1 " ).arg( QChar( 0x2014 ) );
+//   }
   if ( QgsProject::instance()->isDirty() )
     caption.prepend( '*' );
 
-  caption += QgisApp::tr( "QGIS" );
+//   caption += QgisApp::tr( "QGIS" );
 
-  if ( Qgis::version().endsWith( QLatin1String( "Master" ) ) )
-  {
-    caption += QStringLiteral( " %1" ).arg( Qgis::devVersion() );
-  }
+//   if ( Qgis::version().endsWith( QLatin1String( "Master" ) ) )
+//   {
+//     caption += QStringLiteral( " %1" ).arg( Qgis::devVersion() );
+//   }
 
-  if ( QgisApp::instance()->userProfileManager()->allProfiles().count() > 1 )
-  {
-    // add current profile (if it's not the default one)
-    QgsUserProfile *profile = QgisApp::instance()->userProfileManager()->userProfile();
-    if ( profile->name() != QLatin1String( "default" ) )
-      caption += QStringLiteral( " [%1]" ).arg( profile->name() );
-  }
+//   if ( QgisApp::instance()->userProfileManager()->allProfiles().count() > 1 )
+//   {
+//     // add current profile (if it's not the default one)
+//     QgsUserProfile *profile = QgisApp::instance()->userProfileManager()->userProfile();
+//     if ( profile->name() != QLatin1String( "default" ) )
+//       caption += QStringLiteral( " [%1]" ).arg( profile->name() );
+//   }
 
   qgisApp.setWindowTitle( caption );
 }
