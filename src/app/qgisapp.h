@@ -2363,6 +2363,8 @@ class APP_EXPORT QgisApp : public QMainWindow, public Ui::MainWindow
      */
     QList< QgsMapToolCapture * > captureTools();
 
+    virtual void setTitleBarText();
+
     QgsScreenHelper *mScreenHelper = nullptr;
 
     QgisAppStyleSheet *mStyleSheetBuilder = nullptr;

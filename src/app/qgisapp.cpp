@@ -541,7 +541,7 @@ class QgsUserProfile;
 /**
  * Set the application title bar text
  */
-static void setTitleBarText_( QWidget &qgisApp )
+void QgisApp::setTitleBarText()
 {
   QString caption;
   if ( QgsProject::instance()->title().isEmpty() )
@@ -560,29 +560,29 @@ static void setTitleBarText_( QWidget &qgisApp )
   {
     caption = QgsProject::instance()->title();
   }
-//   if ( !caption.isEmpty() )
-//   {
-//     caption += QStringLiteral( " %1 " ).arg( QChar( 0x2014 ) );
-//   }
+  if ( !caption.isEmpty() )
+  {
+    caption += QStringLiteral( " %1 " ).arg( QChar( 0x2014 ) );
+  }
   if ( QgsProject::instance()->isDirty() )
     caption.prepend( '*' );
 
-//   caption += QgisApp::tr( "QGIS" );
+  caption += QgisApp::tr( "QGIS" );
 
-//   if ( Qgis::version().endsWith( QLatin1String( "Master" ) ) )
-//   {
-//     caption += QStringLiteral( " %1" ).arg( Qgis::devVersion() );
-//   }
+  if ( Qgis::version().endsWith( QLatin1String( "Master" ) ) )
+  {
+    caption += QStringLiteral( " %1" ).arg( Qgis::devVersion() );
+  }
 
-//   if ( QgisApp::instance()->userProfileManager()->allProfiles().count() > 1 )
-//   {
-//     // add current profile (if it's not the default one)
-//     QgsUserProfile *profile = QgisApp::instance()->userProfileManager()->userProfile();
-//     if ( profile->name() != QLatin1String( "default" ) )
-//       caption += QStringLiteral( " [%1]" ).arg( profile->name() );
-//   }
+  if ( QgisApp::instance()->userProfileManager()->allProfiles().count() > 1 )
+  {
+    // add current profile (if it's not the default one)
+    QgsUserProfile *profile = QgisApp::instance()->userProfileManager()->userProfile();
+    if ( profile->name() != QLatin1String( "default" ) )
+      caption += QStringLiteral( " [%1]" ).arg( profile->name() );
+  }
 
-  qgisApp.setWindowTitle( caption );
+  QgisApp::instance()->setWindowTitle( caption );
 }
 
 /**
@@ -1470,7 +1470,7 @@ QgisApp::QgisApp( QSplashScreen *splash, bool restorePlugins, bool skipBadLayers
 
   // QgsMessageLog::logMessage( tr( "QGIS starting…" ), QString(), Qgis::MessageLevel::Info );
 
-  connect( QgsProject::instance(), &QgsProject::isDirtyChanged, this, [ = ] { setTitleBarText_( *this ); } );
+  connect( QgsProject::instance(), &QgsProject::isDirtyChanged, this, [ = ] { setTitleBarText(); } );
 
   // set QGIS specific srs validation
   connect( this, &QgisApp::customCrsValidation,
@@ -5565,7 +5565,7 @@ bool QgisApp::fileNew( bool promptToSaveFlag, bool forceBlank )
 
   prj->setDirty( false );
 
-  setTitleBarText_( *this );
+  setTitleBarText();
 
   // emit signal so listeners know we have a new project
   emit newProject();
@@ -6262,7 +6262,7 @@ bool QgisApp::addProject( const QString &projectFile )
 
     mProjectLastModified = QgsProject::instance()->lastModified();
 
-    setTitleBarText_( *this );
+    setTitleBarText();
     mOverviewCanvas->setBackgroundColor( QgsProject::instance()->backgroundColor() );
 
     applyProjectSettingsToCanvas( mMapCanvas );
@@ -6440,7 +6440,7 @@ bool QgisApp::fileSave()
 
   if ( QgsProject::instance()->write() )
   {
-    setTitleBarText_( *this ); // update title bar
+    setTitleBarText(); // update title bar
     mStatusBar->showMessage( tr( "Saved project to: %1" ).arg( QDir::toNativeSeparators( QgsProject::instance()->fileName() ) ), 5000 );
 
     saveRecentProjectPath();
@@ -6527,7 +6527,7 @@ void QgisApp::fileSaveAs()
 
   if ( QgsProject::instance()->write() )
   {
-    setTitleBarText_( *this ); // update title bar
+    setTitleBarText(); // update title bar
     mStatusBar->showMessage( tr( "Saved project to: %1" ).arg( QDir::toNativeSeparators( QgsProject::instance()->fileName() ) ), 5000 );
     // add this to the list of recently used project files
     saveRecentProjectPath();
@@ -14231,7 +14231,7 @@ void QgisApp::projectProperties( const QString &currentPage )
   mMapTools->mapTool< QgsMapToolMeasureBearing >( QgsAppMapTools::MeasureBearing )->updateSettings();
 
   // Set the window title.
-  setTitleBarText_( *this );
+  setTitleBarText();
 }
 
 
@@ -16694,7 +16694,7 @@ void QgisApp::saveProjectToProjectStorage( const QString &uri )
   QgsProject::instance()->setFileName( uri );
   if ( QgsProject::instance()->write() )
   {
-    setTitleBarText_( *this ); // update title bar
+    setTitleBarText(); // update title bar
     mStatusBar->showMessage( tr( "Saved project to: %1" ).arg( uri ), 5000 );
     // add this to the list of recently used project files
     saveRecentProjectPath();
