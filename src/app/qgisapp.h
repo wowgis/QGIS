@@ -1115,7 +1115,7 @@ class APP_EXPORT QgisApp : public QMainWindow, public Ui::MainWindow
     void addVirtualLayer();
 
     //! Remove a layer from the map and legend
-    void removeLayer();
+    virtual void removeLayer();
 
     //! Duplicate map layer(s) in legend
     void duplicateLayers( const QList<QgsMapLayer *> &lyrList = QList<QgsMapLayer *>() );
