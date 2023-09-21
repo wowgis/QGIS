@@ -119,7 +119,7 @@ class APP_EXPORT QgsIdentifyPlotCurve
 
 };
 
-class APP_EXPORT QgsIdentifyResultsDialog: public QDialog, private Ui::QgsIdentifyResultsBase
+class APP_EXPORT QgsIdentifyResultsDialog: public QDialog, public Ui::QgsIdentifyResultsBase
 {
     Q_OBJECT
 
@@ -285,7 +285,7 @@ class APP_EXPORT QgsIdentifyResultsDialog: public QDialog, private Ui::QgsIdenti
 
     void showHelp();
 
-  private:
+  protected:
     QString representValue( QgsVectorLayer *vlayer, const QgsEditorWidgetSetup &setup, const QString &fieldName, const QVariant &value );
 
     enum ItemDataRole

@@ -82,19 +82,19 @@ class APP_EXPORT QgsMapToolIdentifyAction : public QgsMapToolIdentify
 
     void copyToClipboard( QgsFeatureStore & );
 
-  private slots:
+  public slots:
     void showAttributeTable( QgsMapLayer *layer, const QList<QgsFeature> &featureList );
 
     void identifyFromGeometry();
 
-  private:
+  protected:
     //! Pointer to the identify results dialog for name/value pairs
     QPointer<QgsIdentifyResultsDialog> mResultsDialog;
 
     QgsMapToolSelectionHandler *mSelectionHandler = nullptr;
     bool mShowExtendedMenu = false;
 
-    QgsIdentifyResultsDialog *resultsDialog();
+    virtual QgsIdentifyResultsDialog *resultsDialog();
 
     QgsUnitTypes::DistanceUnit displayDistanceUnits() const override;
     QgsUnitTypes::AreaUnit displayAreaUnits() const override;

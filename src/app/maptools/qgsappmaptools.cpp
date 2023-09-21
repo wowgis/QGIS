@@ -136,4 +136,14 @@ QList<QgsMapToolCapture *> QgsAppMapTools::captureTools() const
   return res;
 }
 
-
+void QgsAppMapTools::setMapTool(Tool tool, QPointer< QgsMapTool > mapToolPt)
+{
+    if(mapToolPt.isNull()) {
+        return;
+    }
+    QgsMapTool * oldMapTool = mapTool(tool);
+    if(oldMapTool) {
+        oldMapTool->deleteLater();
+    }
+    mTools[tool] = mapToolPt;
+}

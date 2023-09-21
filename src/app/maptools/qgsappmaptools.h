@@ -105,6 +105,7 @@ class APP_EXPORT QgsAppMapTools
      */
     QList< QgsMapToolCapture * > captureTools() const;
 
+    void setMapTool(Tool tool, QPointer< QgsMapTool > mapToolPt);
   private:
 
     QHash< Tool, QPointer< QgsMapTool > > mTools;
