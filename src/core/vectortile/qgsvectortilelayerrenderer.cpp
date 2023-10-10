@@ -89,7 +89,7 @@ bool QgsVectorTileLayerRenderer::render()
   mTileZoom = QgsVectorTileUtils::scaleToZoomLevel( ctx.rendererScale(), mSourceMinZoom, mSourceMaxZoom );
   QgsDebugMsgLevel( QStringLiteral( "Vector tiles zoom level: %1" ).arg( mTileZoom ), 2 );
 
-  mTileMatrix = QgsTileMatrix::fromWebMercator( mTileZoom );
+  mTileMatrix = QgsTileMatrix::fromCustomDef( mTileZoom, QgsCoordinateReferenceSystem::fromEpsgId(4326), QgsPointXY(-180, 90), 180, 2, 1 );
 
   mTileRange = mTileMatrix.tileRangeFromExtent( ctx.extent() );
   QgsDebugMsgLevel( QStringLiteral( "Vector tiles range X: %1 - %2  Y: %3 - %4" )

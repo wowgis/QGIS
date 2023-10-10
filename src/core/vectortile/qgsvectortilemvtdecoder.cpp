@@ -84,8 +84,8 @@ QgsVectorTileFeatures QgsVectorTileMVTDecoder::layerFeatures( const QMap<QString
   QgsVectorTileFeatures features;
 
   const int numTiles = static_cast<int>( pow( 2, mTileID.zoomLevel() ) ); // assuming we won't ever go over 30 zoom levels
-  double z0xMin = -20037508.3427892, z0yMin = -20037508.3427892;
-  double z0xMax =  20037508.3427892, z0yMax =  20037508.3427892;
+  double z0xMin = -180, z0yMin = -90;
+  double z0xMax =  180, z0yMax =  90;
   const double tileDX = ( z0xMax - z0xMin ) / numTiles;
   const double tileDY = ( z0yMax - z0yMin ) / numTiles;
   const double tileXMin = z0xMin + mTileID.column() * tileDX;
