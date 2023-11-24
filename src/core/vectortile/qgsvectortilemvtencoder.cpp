@@ -143,7 +143,7 @@ static void encodePolygon( const QgsPolygon *polygon, MVTGeometryWriter &geomWri
 QgsVectorTileMVTEncoder::QgsVectorTileMVTEncoder( QgsTileXYZ tileID )
   : mTileID( tileID )
 {
-  const QgsTileMatrix tm = QgsTileMatrix::fromWebMercator( mTileID.zoomLevel() );
+  const QgsTileMatrix tm = QgsTileMatrix::fromCustomDef(mTileID.zoomLevel(), QgsCoordinateReferenceSystem::fromEpsgId(4326), QgsPointXY(-180, 90), 180, 2, 1 );
   mTileExtent = tm.tileExtent( mTileID );
   mCrs = tm.crs();
 }

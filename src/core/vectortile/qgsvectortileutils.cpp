@@ -134,7 +134,7 @@ QString QgsVectorTileUtils::formatXYZUrlTemplate( const QString &url, QgsTileXYZ
   {
     turl.replace( QLatin1String( "{y}" ), QString::number( tile.row() ), Qt::CaseInsensitive );
   }
-  turl.replace( QLatin1String( "{z}" ), QString::number( tile.zoomLevel() ), Qt::CaseInsensitive );
+  turl.replace( QLatin1String( "{z}" ), QString::number( tile.zoomLevel() + 1 ), Qt::CaseInsensitive );
   return turl;
 }
 

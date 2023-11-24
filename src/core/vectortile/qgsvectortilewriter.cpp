@@ -35,7 +35,7 @@
 
 QgsVectorTileWriter::QgsVectorTileWriter()
 {
-  setRootTileMatrix( QgsTileMatrix::fromWebMercator( 0 ) );
+  setRootTileMatrix( QgsTileMatrix::fromCustomDef(0, QgsCoordinateReferenceSystem::fromEpsgId(4326), QgsPointXY(-180, 90), 180, 2, 1 ) );
 }
 
 

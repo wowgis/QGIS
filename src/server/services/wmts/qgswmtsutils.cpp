@@ -699,11 +699,16 @@ namespace QgsWmts
         wmtsLayerIds << layerLayerId;
       }
     }
-    if ( !wmtsLayerIds.contains( layer ) )
-    {
-      const QString msg = QObject::tr( "Layer '%1' not found" ).arg( layer );
-      throw QgsBadRequestException( QStringLiteral( "LayerNotDefined" ), msg );
+
+    QStringList layers = layer.split(",");
+    for(QString l : layers) {
+      if ( !wmtsLayerIds.contains( l ) )
+      {
+        const QString msg = QObject::tr( "Layer '%1' not found" ).arg( l );
+        throw QgsBadRequestException( QStringLiteral( "LayerNotDefined" ), msg );
+      }
     }
+
 
     //defining Format
     const QString format = params.formatAsString();
@@ -841,4 +846,3 @@ namespace QgsWmts
   }
 
 } // namespace QgsWmts
-

@@ -88,7 +88,7 @@ bool QgsVectorTileLayer::loadDataSource()
     if ( dsUri.hasParam( QStringLiteral( "zmax" ) ) )
       mSourceMaxZoom = dsUri.param( QStringLiteral( "zmax" ) ).toInt();
 
-    setExtent( QgsRectangle( -20037508.3427892, -20037508.3427892, 20037508.3427892, 20037508.3427892 ) );
+    setExtent( QgsRectangle( -180, -90, 180, 90 ) );
   }
   else if ( mSourceType == QLatin1String( "mbtiles" ) )
   {
@@ -118,7 +118,7 @@ bool QgsVectorTileLayer::loadDataSource()
 
     QgsRectangle r = reader.extent();
     QgsCoordinateTransform ct( QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:4326" ) ),
-                               QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:3857" ) ), transformContext() );
+                               QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:4326" ) ), transformContext() );
     ct.setBallparkTransformsAreAppropriate( true );
     r = ct.transformBoundingBox( r );
     setExtent( r );
@@ -129,7 +129,7 @@ bool QgsVectorTileLayer::loadDataSource()
     return false;
   }
 
-  setCrs( QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:3857" ) ) );
+  setCrs( QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:4326" ) ) );
 
   const QgsDataProvider::ProviderOptions providerOptions { mTransformContext };
   const QgsDataProvider::ReadFlags flags;
@@ -199,7 +199,7 @@ bool QgsVectorTileLayer::setupArcgisVectorTileServiceConnection( const QString &
   else
     mSourceMaxZoom = dataSourceUri.param( QStringLiteral( "zmax" ) ).toInt();
 
-  setExtent( QgsRectangle( -20037508.3427892, -20037508.3427892, 20037508.3427892, 20037508.3427892 ) );
+  setExtent( QgsRectangle( -180, -90, 180, 90 ) );
 
   return true;
 }
@@ -686,7 +686,7 @@ QString QgsVectorTileLayer::htmlMetadata() const
 
 QByteArray QgsVectorTileLayer::getRawTile( QgsTileXYZ tileID )
 {
-  const QgsTileMatrix tileMatrix = QgsTileMatrix::fromWebMercator( tileID.zoomLevel() );
+  const QgsTileMatrix tileMatrix = QgsTileMatrix::fromCustomDef( tileID.zoomLevel(), QgsCoordinateReferenceSystem::fromEpsgId(4326), QgsPointXY(-180, 90), 180, 2, 1 );
   const QgsTileRange tileRange( tileID.column(), tileID.column(), tileID.row(), tileID.row() );
 
   QgsDataSourceUri dsUri;
@@ -736,7 +736,7 @@ QgsVectorTileDataProvider::QgsVectorTileDataProvider(
 
 QgsCoordinateReferenceSystem QgsVectorTileDataProvider::crs() const
 {
-  return QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:3857" ) );
+  return QgsCoordinateReferenceSystem( QStringLiteral( "EPSG:4326" ) );
 }
 
 QString QgsVectorTileDataProvider::name() const
