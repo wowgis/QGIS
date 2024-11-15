@@ -290,6 +290,132 @@ void QgsLabelingEngine::registerLabels( QgsRenderContext &context )
   }
 }
 
+#include "qgsspatialiteutils.h"
+#include "qgsproject.h"
+#include "sqlite3.h"
+
+struct SpatialiteSession
+{
+    spatialite_database_unique_ptr db;
+    int version = -1;
+};
+
+static int sqlite_bbox_exists(void* data,int argc, char** argv, char**)
+{
+    QSet<QString>* keys = static_cast<QSet<QString>*>(data);
+    if(argc > 0) {
+        keys->insert(argv[0]);
+    }
+    return 0;
+}
+
+static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProject* project,
+    QList<pal::LabelPosition*>* labels, QList<pal::LabelPosition*>* unLabels)
+{
+    static QMap<QString, SpatialiteSession*> dbSessionPool;
+    static QString boxIntersectSql("select key from bbox where level = %1 and "
+                               "ST_Intersects(bbox, BuildMBR(%2, %3, %4, %5));");
+    static QString boxInsertSql(
+        "insert into bbox values('%1', %2, SetSRID( BuildMBR(%3, %4, %5, %6), 0));");
+
+    QString wsPath = QFileInfo(project->fileName()).absolutePath();
+    QString dbFile = QDir(wsPath).filePath("bbox.db");
+
+    int lidx = wsPath.lastIndexOf("-");
+    if (lidx < 0) {
+        return;
+    }
+
+    QString dbKey = wsPath.left(lidx);
+    QString sVersion = wsPath.right(wsPath.size() - lidx - 1);
+    int version = sVersion.toInt();
+
+    auto it = dbSessionPool.find(dbKey);
+    SpatialiteSession* session = nullptr;
+    if (it != dbSessionPool.end()) {
+        if (it.value()->version != version) {
+            delete it.value();
+            dbSessionPool.erase(it);
+        } else {
+            session = it.value();
+        }
+    }
+    if (session == nullptr) {
+        spatialite_database_unique_ptr spatialite;
+        if (SQLITE_OK != spatialite.open(dbFile)) {
+            return;
+        }
+        session = new SpatialiteSession();
+        session->db = std::move(spatialite);
+        session->version = version;
+
+        dbSessionPool[dbKey] = session;
+    }
+
+    QMap<QString, pal::LabelPosition*> uniqueLables;
+    pal::LabelPosition* p = nullptr;
+    double cx = 0.0, cy = 0.0;
+    for (int i = 0; i < static_cast<int>(problems->featureCount()); i++) {
+        for (int j = 0; j < problems->featureCandidateCount(i); j++) {
+            p = problems->featureCandidate(i, j);
+            QString txt = p->getFeaturePart()->feature()->labelText();
+            p->getFeaturePart()->getCentroid(cx, cy);
+            txt = QString("%1-%2-%3")
+                .arg(qlonglong (cx * 1E10), 20, 10, QLatin1Char('0'))
+                .arg(qlonglong (cy * 1E10), 20, 10, QLatin1Char('0'))
+                .arg(txt);
+            uniqueLables[txt] = p;
+        }
+    }
+
+    int ret = sqlite3_exec(session->db.get(), "BEGIN", nullptr, nullptr, nullptr);
+    if (ret != SQLITE_OK) {
+        return;
+    }
+    // qDebug() << "start" << QDateTime::currentDateTime().toMSecsSinceEpoch();
+
+    QSet<QString> intersectKeys;
+    for (auto it = uniqueLables.begin(); it != uniqueLables.end(); it++) {
+        const QString& key = it.key();
+        p = it.value();
+        QString sql = boxIntersectSql.arg(level)
+                            .arg(p->getX(), 0, 'g', 15)
+                            .arg(p->getY(), 0, 'g', 15)
+                            .arg(p->getX() + p->getWidth(), 0, 'g', 15)
+                            .arg(p->getY() + p->getHeight(), 0, 'g', 15);
+        intersectKeys.clear();
+        if (SQLITE_OK
+            != sqlite3_exec(session->db.get(), sql.toUtf8(), sqlite_bbox_exists, &intersectKeys, nullptr)) {
+            qDebug() << "Find intersect item error";
+            break;
+        }
+        if(intersectKeys.empty()) {
+            labels->push_back(p);
+            sql = boxInsertSql.arg(key)
+                        .arg(level)
+                        .arg(p->getX(), 0, 'g', 15)
+                        .arg(p->getY(), 0, 'g', 15)
+                        .arg(p->getX() + p->getWidth(), 0, 'g', 15)
+                        .arg(p->getY() + p->getHeight(), 0, 'g', 15);
+            ret = sqlite3_exec(session->db.get(), sql.toUtf8(), nullptr, nullptr, nullptr);
+            if (SQLITE_OK != ret && SQLITE_CONSTRAINT != ret) {
+                qDebug() << "Insert item error";
+                break;
+            }
+        } else {
+            if (intersectKeys.contains(key)) {
+                labels->push_back(p);
+            } else if(unLabels) {
+                unLabels->push_back(p);
+            }
+        }
+    }
+
+    ret = sqlite3_exec(session->db.get(), "COMMIT", nullptr, nullptr, nullptr);
+    // qDebug() << "over:" << labels->size() << " " <<
+    QDateTime::currentDateTime().toMSecsSinceEpoch();
+}
+
 void QgsLabelingEngine::solve( QgsRenderContext &context )
 {
   Q_ASSERT( mPal.get() );
@@ -395,9 +521,15 @@ void QgsLabelingEngine::solve( QgsRenderContext &context )
   }
 
   // find the solution
-  mLabels = mPal->solveProblem( mProblem.get(),
-                                settings.testFlag( QgsLabelingEngineSettings::UseAllLabels ),
-                                settings.testFlag( QgsLabelingEngineSettings::DrawUnplacedLabels ) || settings.testFlag( QgsLabelingEngineSettings::CollectUnplacedLabels ) ? &mUnlabeled : nullptr );
+  bool unlabel = settings.testFlag( QgsLabelingEngineSettings::DrawUnplacedLabels ) || settings.testFlag( QgsLabelingEngineSettings::CollectUnplacedLabels );
+
+  if(mMapSettings.mWmtsMatrix >= 0) {
+    solveWmtsProblems(mProblem.get(), mMapSettings.mWmtsMatrix, mMapSettings.mProject, &mLabels, unlabel ? &mUnlabeled : nullptr);
+  } else {
+    mLabels = mPal->solveProblem( mProblem.get(),
+                                    settings.testFlag( QgsLabelingEngineSettings::UseAllLabels ),
+                                    unlabel ? &mUnlabeled : nullptr );
+  }
 
   // sort labels
   std::sort( mLabels.begin(), mLabels.end(), QgsLabelSorter( mMapSettings ) );

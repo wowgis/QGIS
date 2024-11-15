@@ -872,6 +872,9 @@ class CORE_EXPORT QgsMapSettings : public QgsTemporalRangeObject
 
     QgsDoubleRange mZRange;
 
+  public:
+    int mWmtsMatrix = -1;
+    const QgsProject* mProject = nullptr;
 };
 
 #endif // QGSMAPSETTINGS_H

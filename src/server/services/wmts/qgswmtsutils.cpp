@@ -805,6 +805,7 @@ namespace QgsWmts
     }
     query.addQueryItem( QgsWmsParameterForWmts::name( QgsWmsParameterForWmts::DPI ), QStringLiteral( "96" ) );
     query.addQueryItem( QgsWmsParameterForWmts::name( QgsWmsParameterForWmts::TILED ), QStringLiteral( "true" ) );
+    query.addQueryItem( "MATRIX", QString::number(tm_idx) );
 
     return query;
   }

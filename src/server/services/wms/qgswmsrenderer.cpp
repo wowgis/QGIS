@@ -1305,6 +1305,9 @@ namespace QgsWms
 
     // set selection color
     mapSettings.setSelectionColor( mProject->selectionColor() );
+
+    mapSettings.mWmtsMatrix = mWmsParameters.value("MATRIX").toInt();
+    mapSettings.mProject = mProject;
   }
 
   QDomDocument QgsRenderer::featureInfoDocument( QList<QgsMapLayer *> &layers, const QgsMapSettings &mapSettings,
