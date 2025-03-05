@@ -313,10 +313,11 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
     QList<pal::LabelPosition*>* labels, QList<pal::LabelPosition*>* unLabels)
 {
     static QMap<QString, SpatialiteSession*> dbSessionPool;
-    static QString boxIntersectSql("select key from bbox where level = %1 and "
-                               "ST_Intersects(bbox, BuildMBR(%2, %3, %4, %5));");
-    static QString boxInsertSql(
-        "insert into bbox values('%1', %2, SetSRID( BuildMBR(%3, %4, %5, %6), 0));");
+    static QString boxIntersectSql("select key from bbox where level = %1 and ST_Intersects(bbox, %2);");
+    static QString boxInsertSql("insert into bbox values('%1', %2, SetSRID(%3, 0));");
+    static QString mbrBuildSql("BuildMBR(%1, %2, %3, %4)");
+
+    qDebug() << QDateTime::currentDateTime().toMSecsSinceEpoch();
 
     QString wsPath = QFileInfo(project->fileName()).absolutePath();
     QString dbFile = QDir(wsPath).filePath("bbox.db");
@@ -372,31 +373,47 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
     if (ret != SQLITE_OK) {
         return;
     }
-    // qDebug() << "start" << QDateTime::currentDateTime().toMSecsSinceEpoch();
 
     QSet<QString> intersectKeys;
+    bool conflict = false;
+    // int queryCount = 0;
     for (auto it = uniqueLables.begin(); it != uniqueLables.end(); it++) {
         const QString& key = it.key();
         p = it.value();
-        QString sql = boxIntersectSql.arg(level)
-                            .arg(p->getX(), 0, 'g', 15)
+
+        conflict = false;
+        for(pal::LabelPosition* lp : *labels) {
+            if(lp->isInConflict(p)) {
+                conflict = true;
+                break;
+            }
+        }
+
+        if(conflict) {
+            if(unLabels)
+                unLabels->push_back(p);
+            continue;
+        }
+
+        // queryCount++;
+
+        QString mbrsql = mbrBuildSql.arg(p->getX(), 0, 'g', 15)
                             .arg(p->getY(), 0, 'g', 15)
                             .arg(p->getX() + p->getWidth(), 0, 'g', 15)
                             .arg(p->getY() + p->getHeight(), 0, 'g', 15);
+
+        QString sql = boxIntersectSql.arg(level).arg(mbrsql);
+
         intersectKeys.clear();
         if (SQLITE_OK
             != sqlite3_exec(session->db.get(), sql.toUtf8(), sqlite_bbox_exists, &intersectKeys, nullptr)) {
             qDebug() << "Find intersect item error";
             break;
         }
+
         if(intersectKeys.empty()) {
             labels->push_back(p);
-            sql = boxInsertSql.arg(key)
-                        .arg(level)
-                        .arg(p->getX(), 0, 'g', 15)
-                        .arg(p->getY(), 0, 'g', 15)
-                        .arg(p->getX() + p->getWidth(), 0, 'g', 15)
-                        .arg(p->getY() + p->getHeight(), 0, 'g', 15);
+            sql = boxInsertSql.arg(key).arg(level).arg(mbrsql);
             ret = sqlite3_exec(session->db.get(), sql.toUtf8(), nullptr, nullptr, nullptr);
             if (SQLITE_OK != ret && SQLITE_CONSTRAINT != ret) {
                 qDebug() << "Insert item error";
@@ -412,7 +429,7 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
     }
 
     ret = sqlite3_exec(session->db.get(), "COMMIT", nullptr, nullptr, nullptr);
-    // qDebug() << "over:" << labels->size() << " " <<
+    // qDebug() << "over:" << queryCount << " " << labels->size() << " " << uniqueLables.size() << " " << QDateTime::currentDateTime().toMSecsSinceEpoch();
     QDateTime::currentDateTime().toMSecsSinceEpoch();
 }
 
