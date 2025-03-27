@@ -293,6 +293,8 @@ void QgsLabelingEngine::registerLabels( QgsRenderContext &context )
 #include "qgsspatialiteutils.h"
 #include "qgsproject.h"
 #include "sqlite3.h"
+#include "QLockFile"
+#include "QThread"
 
 struct SpatialiteSession
 {
@@ -317,10 +319,11 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
     static QString boxInsertSql("insert into bbox values('%1', %2, SetSRID(%3, 0));");
     static QString mbrBuildSql("BuildMBR(%1, %2, %3, %4)");
 
-    qDebug() << QDateTime::currentDateTime().toMSecsSinceEpoch();
+    // qDebug() << QDateTime::currentDateTime().toMSecsSinceEpoch();
 
     QString wsPath = QFileInfo(project->fileName()).absolutePath();
     QString dbFile = QDir(wsPath).filePath("bbox.db");
+    QString lkFile = QDir(wsPath).filePath(".dblock");
 
     int lidx = wsPath.lastIndexOf("-");
     if (lidx < 0) {
@@ -341,6 +344,9 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
             session = it.value();
         }
     }
+
+    QLockFile fLock(lkFile);
+    fLock.lock();
     if (session == nullptr) {
         spatialite_database_unique_ptr spatialite;
         if (SQLITE_OK != spatialite.open(dbFile)) {
@@ -430,7 +436,6 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
 
     ret = sqlite3_exec(session->db.get(), "COMMIT", nullptr, nullptr, nullptr);
     // qDebug() << "over:" << queryCount << " " << labels->size() << " " << uniqueLables.size() << " " << QDateTime::currentDateTime().toMSecsSinceEpoch();
-    QDateTime::currentDateTime().toMSecsSinceEpoch();
 }
 
 void QgsLabelingEngine::solve( QgsRenderContext &context )
