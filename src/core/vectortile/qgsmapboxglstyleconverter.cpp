@@ -2912,7 +2912,7 @@ QImage QgsMapBoxGlStyleConverter::retrieveSprite( const QString &name, QgsMapBox
     return QImage();
   }
 
-  const QImage sprite = context.spriteImage().copy( spriteDefinition.value( QStringLiteral( "x" ) ).toInt(),
+  QImage sprite = context.spriteImage().copy( spriteDefinition.value( QStringLiteral( "x" ) ).toInt(),
                         spriteDefinition.value( QStringLiteral( "y" ) ).toInt(),
                         spriteDefinition.value( QStringLiteral( "width" ) ).toInt(),
                         spriteDefinition.value( QStringLiteral( "height" ) ).toInt() );
@@ -2922,7 +2922,10 @@ QImage QgsMapBoxGlStyleConverter::retrieveSprite( const QString &name, QgsMapBox
     return QImage();
   }
 
-  spriteSize = sprite.size() / spriteDefinition.value( QStringLiteral( "pixelRatio" ) ).toDouble() * context.pixelSizeConversionFactor();
+  double pixelRatio = spriteDefinition.value( QStringLiteral( "pixelRatio" ) ).toDouble();
+//   sprite.setDevicePixelRatio( pixelRatio );
+  pixelRatio = 1.0;
+  spriteSize = sprite.size() / pixelRatio * context.pixelSizeConversionFactor();
   return sprite;
 }
 
