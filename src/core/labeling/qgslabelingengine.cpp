@@ -300,24 +300,91 @@ struct SpatialiteSession
 {
     spatialite_database_unique_ptr db;
     int version = -1;
-};
-
-static int sqlite_bbox_exists(void* data,int argc, char** argv, char**)
-{
-    QSet<QString>* keys = static_cast<QSet<QString>*>(data);
-    if(argc > 0) {
-        keys->insert(argv[0]);
+    sqlite3_stmt* boxIntersectSmt = nullptr;
+    sqlite3_stmt* boxInsertSmt = nullptr;
+    ~SpatialiteSession()
+    {
+        if(boxIntersectSmt) {
+            sqlite3_finalize(boxIntersectSmt);
+        }
+        if(boxInsertSmt) {
+            sqlite3_finalize(boxInsertSmt);
+        }
     }
-    return 0;
-}
+
+    bool prepareStmt()
+    {
+        static const char* boxIntersectSql = "select key from bbox where level = :1 and ST_Intersects(bbox, BuildMBR(:2, :3, :4, :5));";
+        static const char* boxInsertSql = "insert into bbox values(:1, :2, SetSRID(BuildMBR(:3, :4, :5, :6), 0));";
+
+        int ok = sqlite3_prepare_v3(db.get(), boxIntersectSql, -1, SQLITE_PREPARE_PERSISTENT, &boxIntersectSmt, nullptr);
+        if(ok != SQLITE_OK) {
+            qDebug() << "Prepare boxIntersectSmt error:" << ok << sqlite3_errmsg(db.get());
+            return false;
+        }
+        ok = sqlite3_prepare_v3(db.get(), boxInsertSql, -1, SQLITE_PREPARE_PERSISTENT, &boxInsertSmt, nullptr);
+        if(ok!= SQLITE_OK) {
+            qDebug() << "Prepare boxInsertSmt error" << ok << sqlite3_errmsg(db.get());
+            return false;
+        }
+
+        return true;
+    }
+
+    bool execIntersect(int level, pal::LabelPosition* p, QSet<QString>& keys)
+    {
+        sqlite3_clear_bindings(boxIntersectSmt);
+        sqlite3_reset(boxIntersectSmt);
+
+        sqlite3_bind_int(boxIntersectSmt, 1, level);
+        sqlite3_bind_double(boxIntersectSmt, 2, p->getX());
+        sqlite3_bind_double(boxIntersectSmt, 3, p->getY());
+        sqlite3_bind_double(boxIntersectSmt, 4, p->getX() + p->getWidth());
+        sqlite3_bind_double(boxIntersectSmt, 5, p->getY() + p->getHeight());
+
+        while(true) {
+            int res = sqlite3_step(boxIntersectSmt);
+
+            if (res == SQLITE_ROW) {
+                const unsigned char* key = sqlite3_column_text(boxIntersectSmt, 0);
+                keys.insert((const char*)key);
+            } else if (res == SQLITE_DONE) {
+                return true;
+            } else {
+                qDebug() << "Exec boxIntersectSmt error";
+                return false;
+            }
+        }
+    }
+
+    bool execInsert(const char* key, int level, pal::LabelPosition* p)
+    {
+        sqlite3_clear_bindings(boxInsertSmt);
+        sqlite3_reset(boxInsertSmt);
+
+        sqlite3_bind_text(boxInsertSmt, 1, key, -1, nullptr);
+        sqlite3_bind_int(boxInsertSmt, 2, level);
+        sqlite3_bind_double(boxInsertSmt, 3, p->getX());
+        sqlite3_bind_double(boxInsertSmt, 4, p->getY());
+        sqlite3_bind_double(boxInsertSmt, 5, p->getX() + p->getWidth());
+        sqlite3_bind_double(boxInsertSmt, 6, p->getY() + p->getHeight());
+
+        while(true) {
+            int res = sqlite3_step(boxInsertSmt);
+            if (res == SQLITE_DONE) {
+                return true;
+            } else {
+                qDebug() << "Exec boxInsertSmt error";
+                return false;
+            }
+        }
+    }
+};
 
 static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProject* project,
     QList<pal::LabelPosition*>* labels, QList<pal::LabelPosition*>* unLabels)
 {
     static QMap<QString, SpatialiteSession*> dbSessionPool;
-    static QString boxIntersectSql("select key from bbox where level = %1 and ST_Intersects(bbox, %2);");
-    static QString boxInsertSql("insert into bbox values('%1', %2, SetSRID(%3, 0));");
-    static QString mbrBuildSql("BuildMBR(%1, %2, %3, %4)");
 
     // qDebug() << QDateTime::currentDateTime().toMSecsSinceEpoch();
 
@@ -355,6 +422,10 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
         session = new SpatialiteSession();
         session->db = std::move(spatialite);
         session->version = version;
+        if(!session->prepareStmt()) {
+            delete session;
+            return;
+        }
 
         dbSessionPool[dbKey] = session;
     }
@@ -366,6 +437,7 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
         for (int j = 0; j < problems->featureCandidateCount(i); j++) {
             p = problems->featureCandidate(i, j);
             QString txt = p->getFeaturePart()->feature()->labelText();
+
             p->getFeaturePart()->getCentroid(cx, cy);
             txt = QString("%1-%2-%3")
                 .arg(qlonglong (cx * 1E10), 20, 10, QLatin1Char('0'))
@@ -402,27 +474,15 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
         }
 
         // queryCount++;
-
-        QString mbrsql = mbrBuildSql.arg(p->getX(), 0, 'g', 15)
-                            .arg(p->getY(), 0, 'g', 15)
-                            .arg(p->getX() + p->getWidth(), 0, 'g', 15)
-                            .arg(p->getY() + p->getHeight(), 0, 'g', 15);
-
-        QString sql = boxIntersectSql.arg(level).arg(mbrsql);
-
         intersectKeys.clear();
-        if (SQLITE_OK
-            != sqlite3_exec(session->db.get(), sql.toUtf8(), sqlite_bbox_exists, &intersectKeys, nullptr)) {
+        if (!session->execIntersect(level, p, intersectKeys)) {
             qDebug() << "Find intersect item error";
             break;
         }
 
         if(intersectKeys.empty()) {
             labels->push_back(p);
-            sql = boxInsertSql.arg(key).arg(level).arg(mbrsql);
-            ret = sqlite3_exec(session->db.get(), sql.toUtf8(), nullptr, nullptr, nullptr);
-            if (SQLITE_OK != ret && SQLITE_CONSTRAINT != ret) {
-                qDebug() << "Insert item error";
+            if(!session->execInsert(key.toUtf8(), level, p)) {
                 break;
             }
         } else {
@@ -430,6 +490,7 @@ static void solveWmtsProblems(pal::Problem* problems, int level, const QgsProjec
                 labels->push_back(p);
             } else if(unLabels) {
                 unLabels->push_back(p);
+                // p->getFeaturePart()->feature()->feature().setAttribute("__lab", false);
             }
         }
     }
